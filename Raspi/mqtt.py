@@ -12,7 +12,7 @@ import simpleaudio as sa
 from pathlib import Path
 import logging
 import time
-
+import music
 #setup logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -21,37 +21,15 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 streamHandler.setFormatter(formatter)
 logger.addHandler(streamHandler)
 
-def getHomeDir():
-    homeDir = str(Path.home())
-    logger.info("Home Directory found to be : %s",homeDir)
-    return homeDir
-
-def getMusicPathList(musicDir):
-    list_of_songs = os.listdir(musicDir)
-    ouptut = []
-    for i in list_of_songs:
-        if i.endswith(".wav"):
-            p = Path(musicDir+i)
-            ouptut.append(p)
-    return ouptut
+th = music.MusicPlayer()
+    
 
 def main():
-    musicDir = getHomeDir()+ "/music/"
-    print("Esists" + str(os.path.exists ("Hello wolrd.txt")))
-    if not os.path.exists(musicDir):
-        logger.error("Music Dir Path does not exist: %s", musicDir)
-    music_list = getMusicPathList(musicDir)
-    print(music_list)
-
-    wave_obj = sa.WaveObject.from_wave_file(str(music_list[0]))
-    play_obj = wave_obj.play()
-    counter =0
-    while play_obj.is_playing():
-        time.sleep(0.05)
-        counter+=1
-        if counter>200:
-            play_obj.stop()
-# def music_message(mosq, obj, msg):
+    th.start()
+    while True:
+        pass
+        
+def music_message(mosq, obj, msg):
 #     print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
 #     message = msg.payload
 
