@@ -7,11 +7,50 @@
 
 
 import paho.mqtt.client as mqtt
-import pyglet
 import os
-
+import simpleaudio as sa
 from pathlib import Path
-home = str(Path.home())
+import logging
+import time
+
+#setup logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+streamHandler = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+streamHandler.setFormatter(formatter)
+logger.addHandler(streamHandler)
+
+def getHomeDir():
+    homeDir = str(Path.home())
+    logger.info("Home Directory found to be : %s",homeDir)
+    return homeDir
+
+def getMusicPathList(musicDir):
+    list_of_songs = os.listdir(musicDir)
+    ouptut = []
+    for i in list_of_songs:
+        if i.endswith(".wav"):
+            p = Path(musicDir+i)
+            ouptut.append(p)
+    return ouptut
+
+def main():
+    musicDir = getHomeDir()+ "/music/"
+    print("Esists" + str(os.path.exists ("Hello wolrd.txt")))
+    if not os.path.exists(musicDir):
+        logger.error("Music Dir Path does not exist: %s", musicDir)
+    music_list = getMusicPathList(musicDir)
+    print(music_list)
+
+    wave_obj = sa.WaveObject.from_wave_file(str(music_list[0]))
+    play_obj = wave_obj.play()
+    counter =0
+    while play_obj.is_playing():
+        time.sleep(0.05)
+        counter+=1
+        if counter>200:
+            play_obj.stop()
 # def music_message(mosq, obj, msg):
 #     print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
 #     message = msg.payload
@@ -25,12 +64,5 @@ home = str(Path.home())
 # music_client.loop_forever()
 
 
-# print(os.chdir(home+"/music"))
-musicDir = home+"/music/"
-list_of_songs = os.listdir(musicDir)
-source1 = pyglet.media.load(musicDir+list_of_songs[1])
-player = pyglet.media.Player()
-player.queue(source1)
-while True:
-    player.play()
-    print(player.time)
+if __name__=="__main__":
+    main()
