@@ -12,13 +12,27 @@ logger.addHandler(streamHandler)
 
 
 class MQTT(threading.Thread):
-    def __init__(self):
+    def __init__(self,eventMap):
         threading.Thread.__init__(self)
         logging.info("Started MQTT thread")
+        self.eventMap = eventMap
+
+    def decodeEvent(self,msg):
+        if msg in self.eventMap.keys():
+            logger.info("Event %s recieved and emmitted",msg)
+            self.eventMap[msg].set()
+        else:
+            logger.error("Did not recognise event: %s  :when decoding",msg)
+
 
     def music_message(self,mosq, obj, msg):
         print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
     #     message = msg.payload
+        
+        if msg == "play" or msg=="pause" or msg == "next" or msg == "previous":
+            self.decodeEvent(msg)
+        else:
+            logger.warn("MQTT message not recognised, msg: %s",msg)
 
 
 

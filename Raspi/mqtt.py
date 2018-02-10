@@ -14,6 +14,7 @@ import logging
 import time
 import music
 import mqttThread
+import threading
 #setup logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -22,26 +23,26 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 streamHandler.setFormatter(formatter)
 logger.addHandler(streamHandler)
 
-th1 = music.MusicPlayer()
-th2 = mqttThread.MQTT()
+
 
 def main():
+    #Setup the music Events
+    eventMap = {}
+    for i in ["play","pause","next","previous"]:
+        eventMap[i] = threading.Event()
+        eventMap[i].clear()
+   
+    #create the neccessary threads
+
+    th1 = music.MusicPlayer(eventMap)
+    th2 = mqttThread.MQTT(eventMap)
+
+    #Start the events
     th1.start()
     th2.start()
     while True:
         pass
 
-#def music_message(mosq, obj, msg):
-#     print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-#     message = msg.payload
-
-
-# music_client = mqtt.Client("music_Stream")
-# music_client.connect("localhost")
-# music_client.subscribe("helpp")
-# music_client.on_message = music_message
-
-# music_client.loop_forever()
 
 
 if __name__=="__main__":

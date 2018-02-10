@@ -48,12 +48,14 @@ class MusicState(object):
 
 
 class MusicPlayer(threading.Thread):
-    def __init__(self):
+    def __init__(self,eventMap):
         threading.Thread.__init__(self)
         self.playEvent = threading.Event()
         logger.debug("Started Music Player Thread")
         self.musicState = MusicState()
         self.play_obj = None
+        self.eventMap = eventMap
+
     def next_song(self):
         song_path = self.musicState.get_next_song()
         self.pause()
@@ -78,7 +80,23 @@ class MusicPlayer(threading.Thread):
 
 
     def run(self):
+        #Need to do this to instansiate the play_obj
         self.next_song()
-
-
+        while True:
+            for key,value in self.eventMap.items():
+                if value.is_set():
+                    value.clear()
+                    if key =="play":
+                        if not self.play_obj.is_playing():
+                            self.play()
+                    elif key =="pause":
+                        if self.play_obj.is_playing():
+                            self.pause()
+                    elif key == "next":
+                        self.next_song()
+                    elif key == "previous":
+                        self.prev_song()
+                    else:
+                        logger.warn("Event: %s :in eventmap not recognised",key)
+            time.sleep(0.05)
     
