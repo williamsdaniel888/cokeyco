@@ -13,6 +13,7 @@ from pathlib import Path
 import logging
 import time
 import music
+import mqttThread
 #setup logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -21,15 +22,16 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 streamHandler.setFormatter(formatter)
 logger.addHandler(streamHandler)
 
-th = music.MusicPlayer()
-    
+th1 = music.MusicPlayer()
+th2 = mqttThread.MQTT()
 
 def main():
-    th.start()
+    th1.start()
+    th2.start()
     while True:
         pass
-        
-def music_message(mosq, obj, msg):
+
+#def music_message(mosq, obj, msg):
 #     print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
 #     message = msg.payload
 
