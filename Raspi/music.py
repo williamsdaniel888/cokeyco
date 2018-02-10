@@ -55,6 +55,7 @@ class MusicPlayer(threading.Thread):
         self.musicState = MusicState()
         self.play_obj = None
         self.eventMap = eventMap
+        self.killThread = threading.Event()
 
     def next_song(self):
         song_path = self.musicState.get_next_song()
@@ -82,7 +83,7 @@ class MusicPlayer(threading.Thread):
     def run(self):
         #Need to do this to instansiate the play_obj
         self.next_song()
-        while True:
+        while not self.killThread.is_set():
             for key,value in self.eventMap.items():
                 if value.is_set():
                     value.clear()
@@ -99,4 +100,4 @@ class MusicPlayer(threading.Thread):
                     else:
                         logger.warn("Event: %s :in eventmap not recognised",key)
             time.sleep(0.05)
-    
+        logger.info("Kill thread Recieved, thread %s is shutting down", __name__)

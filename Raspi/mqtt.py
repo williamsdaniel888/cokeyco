@@ -26,6 +26,11 @@ logger.addHandler(streamHandler)
 
 
 def main():
+    # Register the signal handlers
+    #signal.signal(signal.SIGTERM, service_shutdown)
+    #signal.signal(signal.SIGINT, service_shutdown)
+
+
     #Setup the music Events
     eventMap = {}
     for i in ["play","pause","next","previous"]:
@@ -40,9 +45,12 @@ def main():
     #Start the events
     th1.start()
     th2.start()
-    while True:
-        pass
-
+    try:
+        while True:
+            pass
+    except:
+        th1.killThread.set()
+        th2.killThread.set()
 
 
 if __name__=="__main__":

@@ -16,6 +16,7 @@ class MQTT(threading.Thread):
         threading.Thread.__init__(self)
         logging.info("Started MQTT thread")
         self.eventMap = eventMap
+        self.killThread = threading.Event()
 
     def decodeEvent(self,msg):
         if msg in self.eventMap.keys():
@@ -44,4 +45,6 @@ class MQTT(threading.Thread):
         music_client.subscribe("helpp")
         music_client.on_message = self.music_message
         
-        music_client.loop_forever()
+        while not self.killThread.is_set():
+            pass
+        logger.info("Kill thread Recieved, thread %s is shutting down", __name__)
