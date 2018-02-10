@@ -28,12 +28,12 @@ class MQTT(threading.Thread):
 
     def music_message(self,mosq, obj, msg):
         print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-    #     message = msg.payload
+        message = msg.payload.decode("utf-8") 
         
-        if msg == "play" or msg=="pause" or msg == "next" or msg == "previous":
-            self.decodeEvent(msg)
+        if message == "play" or message=="pause" or message == "next" or message == "previous":
+            self.decodeEvent(message)
         else:
-            logger.warn("MQTT message not recognised, msg: %s",msg)
+            logger.warn("MQTT message not recognised, message: %s",message)
 
 
 
@@ -46,5 +46,6 @@ class MQTT(threading.Thread):
         music_client.on_message = self.music_message
         
         while not self.killThread.is_set():
-            pass
+            #poll for events, blocks with time of 0.1s
+            music_client.loop(0.1)
         logger.info("Kill thread Recieved, thread %s is shutting down", __name__)

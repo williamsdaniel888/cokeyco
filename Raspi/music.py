@@ -21,6 +21,11 @@ class MusicState(object):
         self.music_list = self.getMusicPathList(musicDir)
         self.index = 0
 
+    def get_current_song(self):
+        playlist_length = len(self.music_list)
+        self.index = (self.index)
+        return self.music_list[self.index]
+
     def get_next_song(self):
         playlist_length = len(self.music_list)
         self.index = (self.index+1)%playlist_length
@@ -60,25 +65,28 @@ class MusicPlayer(threading.Thread):
     def next_song(self):
         song_path = self.musicState.get_next_song()
         self.pause()
-        self.play_obj = sa.WaveObject.from_wave_file(str(song_path))
-        self.play_obj.play()
+        self.play_obj = sa.WaveObject.from_wave_file(str(song_path)).play()
+        
 
     def prev_song(self):
-        song_path = self.musicState.get_next_song()
+        song_path = self.musicState.get_previous_song()
 
         self.pause()
 
-        self.play_obj = sa.WaveObject.from_wave_file(str(song_path))
-        self.play_obj.play()
+        self.play_obj = sa.WaveObject.from_wave_file(str(song_path)).play()
 
     def pause(self):
         if not self.play_obj == None and self.play_obj.is_playing():
             self.play_obj.stop()
     
     def play(self):
-        if self.play_obj.is_playing():
-            self.play_obj.stop()
-
+        if not self.play_obj.is_playing():
+            
+            song_path = self.musicState.get_current_song()
+            self.pause()
+            self.play_obj = sa.WaveObject.from_wave_file(str(song_path)).play()
+        else:
+            logger.info("File is already playing")
 
     def run(self):
         #Need to do this to instansiate the play_obj
@@ -88,8 +96,7 @@ class MusicPlayer(threading.Thread):
                 if value.is_set():
                     value.clear()
                     if key =="play":
-                        if not self.play_obj.is_playing():
-                            self.play()
+                        self.play()
                     elif key =="pause":
                         if self.play_obj.is_playing():
                             self.pause()
