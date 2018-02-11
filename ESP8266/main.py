@@ -8,6 +8,7 @@ import ujson
 from umqtt.simple import MQTTClient
 import ubinascii
 
+
 #networking
 # ap_if = network.WLAN(network.AP_IF)
 # ap_if.active(False)
@@ -36,29 +37,46 @@ i2cport.writeto(0x1E, bytearray([0x00, 0x10]))
 #send initialization command 2: gain 1090LSbit per Gauss = 0.92 mG per LSbit
 i2cport.writeto(0x1E, bytearray([0x01, 0xE0]))
 
-while True:
-    #send the command for single-measurement mode
-    i2cport.writeto(0x1E, bytearray([0x02, 0x01]))
-    #Wait 6ms
-    time.sleep_ms(7)
-    data = i2cport.readfrom(0x1E, 0x06)
-    #convert the six bytes to three ints
-    dataX = int.from_bytes(bytearray([data[0],data[1]]), 'big', False)
-    if(dataX & 0x8000):
-        dataX = (dataX - 2**16)
-    else:
-        pass    
-    dataZ = int.from_bytes(bytearray([data[2],data[3]]), 'big', True)
-    if(dataZ & 0x8000):
-        dataZ = (dataZ - 2**16)
-    else:
-        pass    
-    dataY = int.from_bytes(bytearray([data[4],data[5]]), 'big', True)
-    if(dataY & 0x8000):
-        dataY = (dataY - 2**16)
+
+
+def convert_mag_readings_to_int(byteArray):
+    data = int.from_bytes(byteArray, 'big', False)
+    if(data & 0x8000):
+        data = (data - 2**16)
     else:
         pass
-    #print("X field: " + str(dataX) + ", Y field: " + str(dataY) + ", Z field: " + str(dataZ)) 
+    return data
+
+while True:
+    #send the command for single-measurement mode
+    # TODO: Do we need to do this for each reading?
+    i2cport.writeto(0x1E, bytearray([0x02, 0x01]))
+    #Wait 6ms
+    #TODO: Why do we need to do this? Synchronisation?
+    time.sleep_ms(7)
+
+
+    data = i2cport.readfrom(0x1E, 0x06)
+
+
+    #convert the six bytes to three ints
+    dataX = convert_mag_readings_to_int(bytearray([data[0],data[1]]))   
+    dataZ = convert_mag_readings_to_int(bytearray([data[2],data[3]]))
+    dataY = convert_mag_readings_to_int(bytearray([data[4],data[5]]))
+
+
     sjson = "{{'dataX':{0},'dataY':{1},'dataZ':{2}}}".format(dataX,dataY,dataZ)
-    client.publish("home",bytes(sjson,'utf-8'))
+    client.publish("magReadings",bytes(sjson,'utf-8'))
+    
+    ####TODO: DO DSP HERE
+    if dataX >300 and dataY >300:
+        #When in Quadrant x
+        client.publish("musicControl",bytes("next",'utf-8'))
+    
+
+
+
+
+    
+    
     time.sleep(3)
