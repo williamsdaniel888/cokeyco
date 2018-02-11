@@ -27,7 +27,7 @@ class MQTT(threading.Thread):
 
 
     def music_message(self,mosq, obj, msg):
-        print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+        #print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
         message = msg.payload.decode("utf-8") 
         
         if message == "play" or message=="pause" or message == "next" or message == "previous":

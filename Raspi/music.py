@@ -61,30 +61,31 @@ class MusicPlayer(threading.Thread):
         self.play_obj = None
         self.eventMap = eventMap
         self.killThread = threading.Event()
+        self.PlayFlag = True
 
     def next_song(self):
         song_path = self.musicState.get_next_song()
         self.pause()
         self.play_obj = sa.WaveObject.from_wave_file(str(song_path)).play()
-        
+        self.PlayFlag = True
 
     def prev_song(self):
         song_path = self.musicState.get_previous_song()
-
         self.pause()
-
         self.play_obj = sa.WaveObject.from_wave_file(str(song_path)).play()
+        self.PlayFlag = True
 
     def pause(self):
         if not self.play_obj == None and self.play_obj.is_playing():
             self.play_obj.stop()
+            self.PlayFlag = False
     
     def play(self):
         if not self.play_obj.is_playing():
-            
             song_path = self.musicState.get_current_song()
             self.pause()
             self.play_obj = sa.WaveObject.from_wave_file(str(song_path)).play()
+            self.PlayFlag = True
         else:
             logger.info("File is already playing")
 
@@ -98,7 +99,6 @@ class MusicPlayer(threading.Thread):
                     if key =="play":
                         self.play()
                     elif key =="pause":
-                        if self.play_obj.is_playing():
                             self.pause()
                     elif key == "next":
                         self.next_song()
@@ -106,5 +106,7 @@ class MusicPlayer(threading.Thread):
                         self.prev_song()
                     else:
                         logger.warn("Event: %s :in eventmap not recognised",key)
+            if self.play_obj.is_playing()==False and self.PlayFlag == True:
+                self.next_song()
             time.sleep(0.05)
         logger.info("Kill thread Recieved, thread %s is shutting down", __name__)
