@@ -11,6 +11,10 @@ streamHandler.setFormatter(formatter)
 logger.addHandler(streamHandler)
 
 
+MQTTServer = "localhost"
+
+
+
 class MQTT(threading.Thread):
     def __init__(self,eventMap):
         threading.Thread.__init__(self)
@@ -41,10 +45,10 @@ class MQTT(threading.Thread):
         logging.info("Setting up MQTT subscribe")
 
         music_client = mqtt.Client("music_Stream")
-        music_client.connect("192.168.0.10")
+        music_client.connect(MQTTServer)
         music_client.subscribe("musicControl")
         music_client.on_message = self.music_message
-        
+        logger.info("Started listeing to musi cMessages on %s",MQTTServer)
         while not self.killThread.is_set():
             #poll for events, blocks with time of 0.1s
             music_client.loop(0.1)

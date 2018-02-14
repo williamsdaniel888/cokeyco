@@ -24,6 +24,12 @@ fi
 update-rc.d ssh enable &&
 invoke-rc.d ssh start &&
 echo "SSH Server Enabled"
+sudo apt-get -y install git
+# wget "https://raw.githubusercontent.com/williamsdaniel888/cokeyco/piers/Raspi/master.py" -O master.py
+# wget "https://raw.githubusercontent.com/williamsdaniel888/cokeyco/piers/Raspi/mqttThread.py" -O mqttThread.py
+# wget "https://github.com/williamsdaniel888/cokeyco/blob/piers/Raspi/music.py" -O music.py
+
+wget ""
 
 
 
