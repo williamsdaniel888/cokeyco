@@ -8,6 +8,7 @@ fi
 
 
 #Upgrade all packages
+echo "Starting Package Update"
 apt-get update && apt-get -y upgrade 
 echo "Update Complete Successfully"
 
@@ -15,9 +16,10 @@ echo "Update Complete Successfully"
 yes "embeded" | passwd pi
 echo "Password Changed Successfully"
 #Enable SSH
-if [ -e /var/log/regen_ssh_keys.log ] && ! grep -q "^finished" /var/log/regen_ssh_keys.log; then
-whiptail --msgbox "Initial ssh key generation still running. Please wait and try again." 20 60 2
-return 1
+while [ -e /var/log/regen_ssh_keys.log ] && ! grep -q "^finished" /var/log/regen_ssh_keys.log;
+do
+echo "Initial ssh key generation still running. Trying Again in 5 seconds"
+sleep 5
 fi
 update-rc.d ssh enable &&
 invoke-rc.d ssh start &&
@@ -25,5 +27,5 @@ echo "SSH Server Enabled"
 
 
 
-
+# Install and auto start mosquitto
 apt-get -y install mosquitto 

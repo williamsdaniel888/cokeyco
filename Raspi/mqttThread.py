@@ -41,8 +41,8 @@ class MQTT(threading.Thread):
         logging.info("Setting up MQTT subscribe")
 
         music_client = mqtt.Client("music_Stream")
-        music_client.connect("localhost")
-        music_client.subscribe("helpp")
+        music_client.connect("192.168.0.10")
+        music_client.subscribe("musicControl")
         music_client.on_message = self.music_message
         
         while not self.killThread.is_set():

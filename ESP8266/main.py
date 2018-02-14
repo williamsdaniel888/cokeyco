@@ -9,6 +9,8 @@ from umqtt.simple import MQTTClient
 import ubinascii
 
 
+movingAverageSampleSize=16
+
 #networking
 # ap_if = network.WLAN(network.AP_IF)
 # ap_if.active(False)
@@ -37,6 +39,9 @@ i2cport.writeto(0x1E, bytearray([0x00, 0x10]))
 #send initialization command 2: gain 1090LSbit per Gauss = 0.92 mG per LSbit
 i2cport.writeto(0x1E, bytearray([0x01, 0xE0]))
 
+dataBuffer = []
+Activation_Hold_Off_Counter=0
+Program_Counter = 0
 
 
 def convert_mag_readings_to_int(byteArray):
@@ -46,6 +51,23 @@ def convert_mag_readings_to_int(byteArray):
     else:
         pass
     return data
+
+def moving_average_filter(dataX,dataY,dataZ):
+    global dataBuffer
+    ls = {"dataX": dataX,"dataY":dataY,"dataZ":dataZ}
+    dataBuffer.append(ls)
+    tot_X = 0
+    tot_Y = 0
+    tot_Z = 0
+    for i in dataBuffer:
+        tot_X += i["dataX"]
+        tot_Y += i["dataY"]
+        tot_Z += i["dataZ"]
+    #removes First Occurence
+    if len(dataBuffer)>4:
+        dataBuffer.pop(0)
+    return [tot_X,tot_Y,tot_Z]
+
 
 while True:
     #send the command for single-measurement mode
@@ -65,18 +87,35 @@ while True:
     dataY = convert_mag_readings_to_int(bytearray([data[4],data[5]]))
 
 
+
+    
+
+    #Moving Average Filter
+    average = moving_average_filter(dataX,dataY,dataZ)
+    dataX  = average[0]
+    dataY  = average[1]
+    dataZ  = average[2]
+    #print("Average is", average)
+
+
     sjson = "{{'dataX':{0},'dataY':{1},'dataZ':{2}}}".format(dataX,dataY,dataZ)
     client.publish("magReadings",bytes(sjson,'utf-8'))
-    
-    ####TODO: DO DSP HERE
-    if dataX >300 and dataY >300:
-        #When in Quadrant x
-        client.publish("musicControl",bytes("next",'utf-8'))
-    
 
+    if Program_Counter %16==0:
+        print(sjson)
 
+    if Activation_Hold_Off_Counter>200:
+        ####TODO: DO DSP HERE
+        if dataX >800 and dataY >800:
+            #When in Quadrant x
+            client.publish("musicControl",bytes("next",'utf-8'))
+            print("Next Activated")
+            Activation_Hold_Off_Counter = 0
+        elif dataX<-800 and dataY <-800:
+            client.publish("musicControl",bytes("previous",'utf-8'))
+            print("Previous Activated")
+            Activation_Hold_Off_Counter = 0
 
-
-    
-    
-    time.sleep(3)
+    Activation_Hold_Off_Counter+=1
+    Program_Counter+=1
+    #time.sleep(1)
