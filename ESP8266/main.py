@@ -25,6 +25,7 @@ if sta_if.isconnected():
     print("Connected to Wifi")
 else:
     print("Failed to connect to WIFI network")
+
 #MQTT
 counter = 0
 client = MQTTClient("test", "192.168.0.10")
@@ -87,12 +88,12 @@ while True:
             
         elif dataX< -800 and dataY> 800:
             client.publish("musicControl",bytes("play",'utf-8'))
-            print("Previous Activated")
+            print("play Activated")
             Activation_Hold_Off_Counter = 0
 
         elif dataX> 800 and dataY< -800:
             client.publish("musicControl",bytes("pause",'utf-8'))
-            print("Previous Activated")
+            print("pause Activated")
             Activation_Hold_Off_Counter = 0
     
     Activation_Hold_Off_Counter+=1
