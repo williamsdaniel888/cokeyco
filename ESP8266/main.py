@@ -7,9 +7,9 @@ import network
 import ujson
 from umqtt.simple import MQTTClient
 import ubinascii
-import PIR.PIR as PIR
+import Sensor
 
-movingAverageSampleSize=16
+
 
 WIRELESS_AP_SSID = "pomelo"
 WIRELESS_AP_PASSWORD = "joskweraski"
@@ -32,76 +32,23 @@ time.sleep(5)
 client.connect()
 
 
-#create the i2cport
-i2cport = I2C(scl=Pin(5), sda=Pin(4), freq=100000)
-#send initialization command 1: 1 sample per output; 15 Hz
-i2cport.writeto(0x1E, bytearray([0x00, 0x10]))
-#send initialization command 2: gain 1090LSbit per Gauss = 0.92 mG per LSbit
-i2cport.writeto(0x1E, bytearray([0x01, 0xE0]))
-
-#Data Buffer to hold samples from magnetometer
-dataBuffer = []
-
 #Prevent repeat play/pause messages being picked up 
 Activation_Hold_Off_Counter=0
 
 #Generic Program counter that increments with each loop
 Program_Counter = 0
 
+#Sets up the inital PIR Sensor
+Pir = Sensor.PIR()
 
-Pir = PIR()
-
-#Converts the 16 bit raw readings to singed intergers
-def convert_mag_readings_to_int(byteArray):
-    data = int.from_bytes(byteArray, 'big', False)
-    if(data & 0x8000):
-        data = (data - 2**16)
-    else:
-        pass
-    return data
-
-#function that averages the last x Results
-def moving_average_filter(dataX,dataY,dataZ):
-    global dataBuffer
-    ls = {"dataX": dataX,"dataY":dataY,"dataZ":dataZ}
-    dataBuffer.append(ls)
-    tot_X = 0
-    tot_Y = 0
-    tot_Z = 0
-    for i in dataBuffer:
-        tot_X += i["dataX"]
-        tot_Y += i["dataY"]
-        tot_Z += i["dataZ"]
-
-    #Removes Earlyist Occurence from buffer when data buffer is full
-    if len(dataBuffer)>movingAverageSampleSize:
-        dataBuffer.pop(0)
-    return [tot_X,tot_Y,tot_Z]
-
-
+#Sets up the magentormeter
+Magnet = Sensor.Magnetometer()
 
 
 while True:
-    #send the command for single-measurement mode
-    i2cport.writeto(0x1E, bytearray([0x02, 0x01]))
-    #Wait 6ms for readings to occur
-    time.sleep_ms(7)
-
-
-    data = i2cport.readfrom(0x1E, 0x06)
-
-
-    #convert the six bytes to three ints
-    dataX = convert_mag_readings_to_int(bytearray([data[0],data[1]]))   
-    dataZ = convert_mag_readings_to_int(bytearray([data[2],data[3]]))
-    dataY = convert_mag_readings_to_int(bytearray([data[4],data[5]]))
-
-
-
-    
 
     #Moving Average Filter
-    average = moving_average_filter(dataX,dataY,dataZ)
+    average = Magnet.GetAReading()
     dataX  = average[0]
     dataY  = average[1]
     dataZ  = average[2]
@@ -114,7 +61,7 @@ while True:
 
 
     #Publish on Topic if PIR Is Triggered
-    trig = PIR.IsTriggered(Program_Counter)
+    trig = Pir.IsTriggered(Program_Counter)
     if trig[0]==True and trig[1]>200:
         client.publish("showerMate/PIR",bytes("Triggered",'utf-8'))
 
