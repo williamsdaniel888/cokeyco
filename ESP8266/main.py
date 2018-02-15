@@ -7,30 +7,30 @@ import network
 import ujson
 from umqtt.simple import MQTTClient
 import ubinascii
-
+import PIR.PIR as PIR
 
 movingAverageSampleSize=16
 
-#networking
+WIRELESS_AP_SSID = "pomelo"
+WIRELESS_AP_PASSWORD = "joskweraski"
+
+
+#Wireless etworking
 # ap_if = network.WLAN(network.AP_IF)
 # ap_if.active(False)
 sta_if= network.WLAN(network.STA_IF)
 sta_if.active(True)
-sta_if.connect('EEERover', 'exhibition')
+sta_if.connect(WIRELESS_AP_SSID,WIRELESS_AP_PASSWORD)
 if sta_if.isconnected():
     print("Connected to Wifi")
-
+else:
+    print("Failed to connect to WIFI network")
 #MQTT
 counter = 0
 client = MQTTClient("test", "192.168.0.10")
 time.sleep(5)
 client.connect()
-# while True:
-#     payload = ujson.dumps({'YOLO':'{0} Is the message'.format(counter)})
-#     client.publish("home",bytes(payload,'utf-8'))
-#     counter +=1
-#     time.sleep(5)
-# #to observe channel, type the following into Powershell: mosquitto_sub -t "home" -h 192.168.0.10
+
 
 #create the i2cport
 i2cport = I2C(scl=Pin(5), sda=Pin(4), freq=100000)
@@ -39,11 +39,19 @@ i2cport.writeto(0x1E, bytearray([0x00, 0x10]))
 #send initialization command 2: gain 1090LSbit per Gauss = 0.92 mG per LSbit
 i2cport.writeto(0x1E, bytearray([0x01, 0xE0]))
 
+#Data Buffer to hold samples from magnetometer
 dataBuffer = []
+
+#Prevent repeat play/pause messages being picked up 
 Activation_Hold_Off_Counter=0
+
+#Generic Program counter that increments with each loop
 Program_Counter = 0
 
 
+Pir = PIR()
+
+#Converts the 16 bit raw readings to singed intergers
 def convert_mag_readings_to_int(byteArray):
     data = int.from_bytes(byteArray, 'big', False)
     if(data & 0x8000):
@@ -52,6 +60,7 @@ def convert_mag_readings_to_int(byteArray):
         pass
     return data
 
+#function that averages the last x Results
 def moving_average_filter(dataX,dataY,dataZ):
     global dataBuffer
     ls = {"dataX": dataX,"dataY":dataY,"dataZ":dataZ}
@@ -63,18 +72,19 @@ def moving_average_filter(dataX,dataY,dataZ):
         tot_X += i["dataX"]
         tot_Y += i["dataY"]
         tot_Z += i["dataZ"]
-    #removes First Occurence
-    if len(dataBuffer)>4:
+
+    #Removes Earlyist Occurence from buffer when data buffer is full
+    if len(dataBuffer)>movingAverageSampleSize:
         dataBuffer.pop(0)
     return [tot_X,tot_Y,tot_Z]
 
 
+
+
 while True:
     #send the command for single-measurement mode
-    # TODO: Do we need to do this for each reading?
     i2cport.writeto(0x1E, bytearray([0x02, 0x01]))
-    #Wait 6ms
-    #TODO: Why do we need to do this? Synchronisation?
+    #Wait 6ms for readings to occur
     time.sleep_ms(7)
 
 
@@ -99,23 +109,45 @@ while True:
 
 
     sjson = "{{'dataX':{0},'dataY':{1},'dataZ':{2}}}".format(dataX,dataY,dataZ)
-    client.publish("magReadings",bytes(sjson,'utf-8'))
+    # Publishes magnetic readings to mqtt for debugging
+    #client.publish("magReadings",bytes(sjson,'utf-8'))
 
+
+    #Publish on Topic if PIR Is Triggered
+    trig = PIR.IsTriggered(Program_Counter)
+    if trig[0]==True and trig[1]>200:
+        client.publish("showerMate/PIR",bytes("Triggered",'utf-8'))
+
+
+    #Ocasionally print the data to serial output
     if Program_Counter %16==0:
         print(sjson)
 
     if Activation_Hold_Off_Counter>200:
-        ####TODO: DO DSP HERE
+        # Check whether readings are above threshold
         if dataX >800 and dataY >800:
             #When in Quadrant x
             client.publish("musicControl",bytes("next",'utf-8'))
             print("Next Activated")
+
+            #Reset Activation hold off to prevent multiple quick triggers
             Activation_Hold_Off_Counter = 0
+
         elif dataX<-800 and dataY <-800:
             client.publish("musicControl",bytes("previous",'utf-8'))
             print("Previous Activated")
             Activation_Hold_Off_Counter = 0
+            
+        elif dataX< -800 and dataY> 800:
+            client.publish("musicControl",bytes("play",'utf-8'))
+            print("Previous Activated")
+            Activation_Hold_Off_Counter = 0
 
+        elif dataX> 800 and dataY< -800:
+            client.publish("musicControl",bytes("pause",'utf-8'))
+            print("Previous Activated")
+            Activation_Hold_Off_Counter = 0
+    
     Activation_Hold_Off_Counter+=1
     Program_Counter+=1
-    #time.sleep(1)
+    time.sleep(0.1)
